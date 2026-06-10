@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, useInView } from "framer-motion";
 import { TERMINAL_COMMANDS } from "@/lib/data";
+import SectionWatermark from "@/components/ui/SectionWatermark";
 
 interface HistoryEntry {
   type: "input" | "output" | "error";
@@ -120,7 +121,8 @@ export default function Terminal() {
   };
 
   return (
-    <section id="terminal" className="py-32 px-6 md:px-16 lg:px-24">
+    <section id="terminal" className="section-padding relative overflow-hidden">
+      <SectionWatermark index="06" />
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <motion.div

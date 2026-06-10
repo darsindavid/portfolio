@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence, useInView } from "framer-motion";
 import { PROJECTS } from "@/lib/data";
+import SectionWatermark from "@/components/ui/SectionWatermark";
 
 const STATUS_STYLES: Record<string, string> = {
   LIVE: "text-amber border-amber/40 bg-amber/8",
@@ -177,7 +178,8 @@ export default function ProjectLab() {
   const inView = useInView(ref, { once: true });
 
   return (
-    <section id="lab" className="py-32 px-6 md:px-16 lg:px-24">
+    <section id="lab" className="section-padding relative overflow-hidden">
+      <SectionWatermark index="04" />
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <motion.div
@@ -196,7 +198,7 @@ export default function ProjectLab() {
           initial={{ opacity: 0, y: 20 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ delay: 0.1 }}
-          className="mb-16"
+          className="mb-10"
         >
           <h2 className="font-serif text-4xl md:text-6xl text-offwhite mb-4">
             Featured Work.

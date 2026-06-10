@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import { SKILLS } from "@/lib/data";
+import SectionWatermark from "@/components/ui/SectionWatermark";
 
 const FACTS = [
   { label: "LOCATION", value: "Chennai, TN" },
@@ -80,10 +81,11 @@ function FadeIn({
 
 export default function About() {
   return (
-    <section id="about" className="py-32 px-6 md:px-16 lg:px-24">
+    <section id="about" className="section-padding relative overflow-hidden">
+      <SectionWatermark index="02" />
       <div className="max-w-6xl mx-auto">
         {/* Chapter header */}
-        <FadeIn className="flex items-center gap-4 mb-20">
+        <FadeIn className="flex items-center gap-4 mb-10">
           <span className="font-mono text-xs text-amber/50 tracking-[0.25em] uppercase">
             ABOUT
           </span>
@@ -201,7 +203,7 @@ export default function About() {
         </div>
 
         {/* Film stack moved to the bottom as an extra detail */}
-        <FadeIn delay={0.4} className="mt-20 pt-8 border-t border-white/5">
+        <FadeIn delay={0.4} className="mt-12 pt-8 border-t border-white/5">
           <p className="font-mono text-xs text-offwhite/30 tracking-widest uppercase mb-4">
             OFF-SCREEN RECREATION
           </p>
