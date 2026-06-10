@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import { FUTURE_FRAGMENTS } from "@/lib/data";
+import SectionWatermark from "@/components/ui/SectionWatermark";
 
 const TYPE_STYLES: Record<string, { label: string; color: string }> = {
   LEARNING: { label: "L", color: "text-amber border-amber/30" },
@@ -15,7 +16,8 @@ export default function FutureVision() {
   const inView = useInView(ref, { once: true });
 
   return (
-    <section id="future" className="py-32 px-6 md:px-16 lg:px-24">
+    <section id="future" className="section-padding relative overflow-hidden">
+      <SectionWatermark index="07" />
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <motion.div
@@ -34,7 +36,7 @@ export default function FutureVision() {
           initial={{ opacity: 0, y: 20 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ delay: 0.1 }}
-          className="mb-16"
+          className="mb-10"
         >
           <h2 className="font-serif text-4xl md:text-6xl text-offwhite mb-4">
             What I'm exploring next.

@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { motion, AnimatePresence, useInView } from "framer-motion";
+import SectionWatermark from "@/components/ui/SectionWatermark";
 
 type Phase = "intro" | "toss" | "batting" | "computer-batting" | "result";
 type Parity = "ODD" | "EVEN";
@@ -195,7 +196,8 @@ export default function Arcade() {
   const NUMS = [1, 2, 3, 4, 5, 6];
 
   return (
-    <section id="arcade" className="py-32 px-6 md:px-16 lg:px-24">
+    <section id="arcade" className="section-padding relative overflow-hidden">
+      <SectionWatermark index="05" />
       <div className="max-w-3xl mx-auto">
         {/* Header */}
         <motion.div

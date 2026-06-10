@@ -1,12 +1,13 @@
 "use client";
 
 import { motion } from "framer-motion";
+import SectionWatermark from "@/components/ui/SectionWatermark";
 
 export default function Hero() {
   return (
     <section
       id="home"
-      className="relative min-h-screen flex flex-col items-start justify-center px-6 md:px-16 lg:px-24 overflow-hidden"
+      className="relative min-h-[88svh] flex flex-col items-start justify-end pb-20 pt-28 md:pt-32 px-6 md:px-16 lg:px-24 overflow-hidden"
     >
       {/* Subtle radial amber glow behind text */}
       <div
@@ -94,36 +95,7 @@ export default function Hero() {
         </div>
       </motion.div>
 
-      {/* Scroll hint */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 1, delay: 0.8 }}
-        className="absolute bottom-10 left-6 md:left-16"
-      >
-        <div className="flex items-center gap-3">
-          <div className="flex flex-col gap-1">
-            <motion.div
-              animate={{ y: [0, 6, 0] }}
-              transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-              className="w-px h-8 bg-gradient-to-b from-amber/60 to-transparent mx-auto"
-            />
-          </div>
-          <span className="font-mono text-xs text-offwhite/25 tracking-widest uppercase rotate-90 origin-left ml-2">
-            scroll
-          </span>
-        </div>
-      </motion.div>
-
-      {/* Right side — ambient number */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 0.04 }}
-        transition={{ duration: 1.5, delay: 0.6 }}
-        className="absolute right-8 md:right-16 top-1/2 -translate-y-1/2 font-serif text-[20vw] text-offwhite leading-none select-none pointer-events-none"
-      >
-        01
-      </motion.div>
+      <SectionWatermark index="01" />
     </section>
   );
 }

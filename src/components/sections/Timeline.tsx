@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import { TIMELINE } from "@/lib/data";
+import SectionWatermark from "@/components/ui/SectionWatermark";
 
 function TimelineEntry({
   item,
@@ -92,7 +93,8 @@ export default function Timeline() {
   const titleInView = useInView(titleRef, { once: true });
 
   return (
-    <section id="timeline" className="py-32 px-6 md:px-16 lg:px-24">
+    <section id="timeline" className="section-padding relative overflow-hidden">
+      <SectionWatermark index="03" />
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <motion.div
@@ -100,7 +102,7 @@ export default function Timeline() {
           initial={{ opacity: 0, y: 20 }}
           animate={titleInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6 }}
-          className="flex items-center gap-4 mb-24"
+          className="flex items-center gap-4 mb-12"
         >
           <div className="h-px w-10 bg-amber/50" />
           <span className="font-mono text-xs text-amber/50 tracking-[0.25em] uppercase">
@@ -113,7 +115,7 @@ export default function Timeline() {
           initial={{ opacity: 0, y: 20 }}
           animate={titleInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6, delay: 0.1 }}
-          className="mb-20"
+          className="mb-10"
         >
           <h2 className="font-serif text-4xl md:text-6xl text-offwhite leading-none">
             Experience & Education.
@@ -124,7 +126,7 @@ export default function Timeline() {
         </motion.div>
 
         {/* Timeline entries */}
-        <div className="space-y-20 md:space-y-28">
+        <div className="space-y-12 md:space-y-16">
           {TIMELINE.map((item, index) => (
             <TimelineEntry key={item.category + index} item={item} index={index} />
           ))}

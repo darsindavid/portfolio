@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { motion, useInView } from "framer-motion";
+import SectionWatermark from "@/components/ui/SectionWatermark";
 
 const LINKS = [
   {
@@ -36,7 +37,8 @@ export default function Contact() {
   };
 
   return (
-    <section id="contact" className="py-32 px-6 md:px-16 lg:px-24">
+    <section id="contact" className="section-padding relative overflow-hidden">
+      <SectionWatermark index="08" />
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <motion.div

@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 
 import CustomCursor from "@/components/ui/CustomCursor";
 import Navbar from "@/components/ui/Navbar";
+import ScrollRail from "@/components/ui/ScrollRail";
 
 import Hero from "@/components/sections/Hero";
 import About from "@/components/sections/About";
@@ -27,6 +28,7 @@ export default function Home() {
         transition={{ duration: 0.8, ease: "easeIn" }}
       >
         <Navbar />
+        <ScrollRail />
 
         <main>
           <Hero />
