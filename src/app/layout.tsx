@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Space_Grotesk, Playfair_Display, JetBrains_Mono } from "next/font/google";
 import "@/app/globals.css";
+import { Analytics } from "@vercel/analytics/react";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -65,6 +66,7 @@ export default function RootLayout({
         className={`${spaceGrotesk.variable} ${playfairDisplay.variable} ${jetbrainsMono.variable} font-grotesk bg-bg text-offwhite antialiased`}
       >
         {children}
+        <Analytics />
       </body>
     </html>
   );
