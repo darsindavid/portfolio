@@ -224,7 +224,7 @@ export default function Arcade() {
         {/* Header */}
         <motion.div ref={ref} initial={{ opacity: 0, y: 20 }} animate={inView ? { opacity: 1, y: 0 } : {}} className="flex items-center gap-4 mb-8">
           <div className="h-px w-10 bg-amber/50" />
-          <span className="font-mono text-xs text-amber/50 tracking-[0.25em] uppercase">MINI GAME</span>
+          <span className="font-mono text-xs text-amber/50 tracking-[0.25em] uppercase">ARCADE</span>
         </motion.div>
 
         <div className="mb-10">

@@ -83,7 +83,7 @@ export default function FutureVision() {
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-amber animate-pulse" />
                 <p className="font-mono text-xs text-offwhite/60">
-                  Graduate → Building → Seeking Full-Time Roles
+                  Graduate → Learning → Seeking Full-Time Roles
                 </p>
               </div>
             </div>
