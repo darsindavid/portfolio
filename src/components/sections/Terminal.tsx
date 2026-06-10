@@ -240,7 +240,7 @@ export default function Terminal() {
           transition={{ delay: 0.4 }}
           className="font-mono text-xs text-offwhite/20 mt-4"
         >
-          Try: help · whoami · skills · experience · clear
+          Try: help · whoami · skills · clear
         </motion.p>
       </div>
     </section>
