@@ -86,12 +86,14 @@ export default function Hero() {
             VIEW PROJECTS →
           </a>
           <a
-            href="#terminal"
-            data-hover
-            className="font-mono text-sm text-offwhite/50 border border-white/10 px-5 py-2.5 hover:text-offwhite hover:border-white/20 transition-all duration-300"
-          >
-            RESUME
-          </a>
+  href="https://drive.google.com/file/d/1jXyzhB7jg9Gfs4ssaKg9rP-qIdTXcKpC/view"
+  target="_blank"
+  rel="noopener noreferrer"
+  data-hover
+  className="font-mono text-sm text-offwhite/50 border border-white/10 px-5 py-2.5 hover:text-offwhite hover:border-white/20 transition-all duration-300 flex items-center gap-1.5"
+>
+  RESUME ↗
+</a>
         </div>
       </motion.div>
 
