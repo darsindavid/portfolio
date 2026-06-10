@@ -21,8 +21,8 @@ export const PROJECTS = [
     codename: "Frontend App",
     title: "Project Ayush",
     subtitle: "Virtual Herbal Garden — SIH 2024",
-    tags: ["HTML", "CSS", "JavaScript", "Frontend"],
-    status: "LIVE",
+    tags: ["HTML", "CSS", "JavaScript"],
+    status: "HACKATHON PROJECT",
     hypothesis: "Standard UI patterns for botanical data often fall short in user retention. The goal was to build an interface that feels intuitive and visually cohesive.",
     method: "Collaborated with a team to develop a virtual herbal garden featuring 20+ categorized medicinal plants. Built the responsive frontend to handle user navigation, filtering, and categorization.",
     finding: "UX decisions and clean filtering logic are critical when dealing with large datasets. Investing time in a robust frontend architecture speeds up feature development.",
@@ -77,7 +77,7 @@ export const TIMELINE = [
     category: "EDUCATION",
     title: "SRMIST — Chennai",
     period: "2022 — 2026",
-    description: "B.Tech in Computer Science and Engineering, with a specialized focus on Artificial Intelligence and Machine Learning.",
+    description: "B.Tech in Computer Science and Engineering with specialization in Artificial Intelligence and Machine Learning.",
     status: "past",
     events: [
       "Deep dive into Data Structures, Algorithms, and System Architecture.",
@@ -87,7 +87,7 @@ export const TIMELINE = [
   },
   {
     category: "EXPERIENCE",
-    title: "Hackathons, Research & Appexert",
+    title: "Hackathons, Research & Internship",
     period: "2024 — 2026",
     description: "Applied theoretical knowledge to high-pressure environments, peer-reviewed academic research, and production codebases.",
     status: "past",

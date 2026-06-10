@@ -12,19 +12,6 @@ const FACTS = [
   { label: "GOAL", value: "Building resilient, user-centric software" },
 ];
 
-const FILMS = [
-  "Aaranya Kaandam",
-  "Fallen Angels",
-  "Dev D",
-  "Memories of Murder",
-  "Pulp Fiction",
-  "Kill Bill",
-  "Super Deluxe",
-  "Requiem for a Dream",
-  "Inception",
-  "Natchathiram Nagargiradhu",
-];
-
 // Updated to match a more grounded tech stack
 const CLICK_REVEALS: Record<string, string> = {
   Python: "First language. Still the fastest way to prove an idea works.",
@@ -147,7 +134,6 @@ export default function About() {
               <p className="font-mono text-xs text-offwhite/30 tracking-widest uppercase mb-4">
                 TECHNICAL STACK{" "}
                 <span className="text-amber/40 normal-case tracking-normal">
-                  — click for context
                 </span>
               </p>
 
@@ -201,24 +187,6 @@ export default function About() {
             </FadeIn>
           </div>
         </div>
-
-        {/* Film stack moved to the bottom as an extra detail */}
-        <FadeIn delay={0.4} className="mt-12 pt-8 border-t border-white/5">
-          <p className="font-mono text-xs text-offwhite/30 tracking-widest uppercase mb-4">
-            OFF-SCREEN RECREATION
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {FILMS.map((film) => (
-              <span
-                key={film}
-                className="font-mono text-xs text-offwhite/40 border border-white/8 px-2 py-1"
-              >
-                {film}
-              </span>
-            ))}
-          </div>
-        </FadeIn>
-
       </div>
     </section>
   );

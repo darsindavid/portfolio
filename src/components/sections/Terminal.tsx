@@ -28,11 +28,14 @@ export default function Terminal() {
   const [isFocused, setIsFocused] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isInitialRender = useRef(true);
 
   // Auto-scroll to bottom when history changes
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (containerRef.current) {
+      containerRef.current.scrollTop = containerRef.current.scrollHeight;
+    }
   }, [history]);
 
   const runCommand = useCallback((raw: string) => {
@@ -208,7 +211,7 @@ export default function Terminal() {
                 )}
               </div>
             ))}
-            <div ref={bottomRef} />
+            <div ref={containerRef} />
           </div>
 
           {/* Input row */}

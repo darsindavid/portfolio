@@ -82,7 +82,7 @@ export default function Contact() {
             >
               <span className="w-2 h-2 rounded-full bg-amber animate-pulse" />
               <span className="font-mono text-xs text-offwhite/40">
-                Open to full-time roles · Based in Chennai 
+                Open to full-time roles · Based in Chennai but happy to relocate :D
               </span>
             </motion.div>
           </div>
