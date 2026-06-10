@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Space_Grotesk, Playfair_Display, JetBrains_Mono } from "next/font/google";
 import "@/app/globals.css";
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
