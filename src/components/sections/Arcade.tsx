@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence, useInView } from "framer-motion";
 import SectionWatermark from "@/components/ui/SectionWatermark";
 
-type Phase = "intro" | "toss" | "batting" | "computer-batting" | "result";
+type Phase = "intro" | "toss" | "toss-choice" | "playing" | "innings-break" | "result";
 type Parity = "ODD" | "EVEN";
+type Role = "BATTING" | "BOWLING";
 
 interface Achievement {
   id: string;
@@ -13,14 +14,13 @@ interface Achievement {
   desc: string;
 }
 
-const MAX_WICKETS = 3;
+const MAX_WICKETS = 1;
+const NUMS: number[] = [1, 2, 3, 4, 5, 6];
 
 const ACHIEVEMENTS: Achievement[] = [
-  { id: "century", label: "CENTURION", desc: "Scored 100+ in your innings" },
   { id: "duck", label: "GOLDEN DUCK", desc: "Out on 0 runs" },
   { id: "seven", label: "LUCKY 7", desc: "Combined toss sum was exactly 7" },
-  { id: "shutout", label: "BOWLED OUT", desc: "Computer scored 0" },
-  { id: "perfect", label: "CLEAN SWEEP", desc: "Won by 50+ runs" },
+  { id: "shutout", label: "BOWLED OUT", desc: "Opponent scored 0" },
 ];
 
 export default function Arcade() {
@@ -31,6 +31,11 @@ export default function Arcade() {
   const [selectedParity, setSelectedParity] = useState<Parity | null>(null);
   const [selectedNum, setSelectedNum] = useState<number | null>(null);
   
+  // Gameplay states
+  const [playerRole, setPlayerRole] = useState<Role>("BATTING");
+  const [innings, setInnings] = useState<1 | 2>(1);
+  const [target, setTarget] = useState<number | null>(null);
+  
   const [playerScore, setPlayerScore] = useState(0);
   const [computerScore, setComputerScore] = useState(0);
   const [playerWickets, setPlayerWickets] = useState(0);
@@ -39,8 +44,13 @@ export default function Arcade() {
   const [gameLog, setGameLog] = useState<string[]>([]);
   const [lastResult, setLastResult] = useState<string | null>(null);
   const [tossResult, setTossResult] = useState<string | null>(null);
-  const [waiting, setWaiting] = useState(false);
   
+  // Shuffling animation states
+  const [resolvingMove, setResolvingMove] = useState(false);
+  const [shuffleNum, setShuffleNum] = useState(1);
+  const [revealedPlayerNum, setRevealedPlayerNum] = useState<number | null>(null);
+  const [revealedCpuNum, setRevealedCpuNum] = useState<number | null>(null);
+
   const [achievements, setAchievements] = useState<string[]>([]);
   const [newAchievement, setNewAchievement] = useState<Achievement | null>(null);
 
@@ -54,12 +64,26 @@ export default function Arcade() {
   };
 
   const addLog = (msg: string) =>
-    setGameLog((prev) => [msg, ...prev].slice(0, 6));
+    setGameLog((prev) => [msg, ...prev].slice(0, 4));
+
+  // Shuffling animation loops while calculating moves
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (resolvingMove && revealedCpuNum === null) {
+      interval = setInterval(() => {
+        setShuffleNum(Math.ceil(Math.random() * 6));
+      }, 75);
+    }
+    return () => clearInterval(interval);
+  }, [resolvingMove, revealedCpuNum]);
 
   const resetGame = () => {
     setPhase("intro");
     setSelectedParity(null);
     setSelectedNum(null);
+    setPlayerRole("BATTING");
+    setInnings(1);
+    setTarget(null);
     setPlayerScore(0);
     setComputerScore(0);
     setPlayerWickets(0);
@@ -67,13 +91,15 @@ export default function Arcade() {
     setGameLog([]);
     setLastResult(null);
     setTossResult(null);
-    setWaiting(false);
+    setResolvingMove(false);
+    setRevealedPlayerNum(null);
+    setRevealedCpuNum(null);
   };
 
-  // ── 1. Toss Phase ─────────────────────────────────────────────────────────
+  // ── 1. Toss Step ──────────────────────────────────────────────────────────
   const handleToss = () => {
-    if (!selectedParity || !selectedNum || waiting) return;
-    setWaiting(true);
+    if (!selectedParity || !selectedNum || resolvingMove) return;
+    setResolvingMove(true);
 
     const compNum = Math.ceil(Math.random() * 6);
     const sum = selectedNum + compNum;
@@ -82,500 +108,294 @@ export default function Arcade() {
 
     if (sum === 7) unlockAchievement("seven");
 
-    if (wonToss) {
-      setTossResult(`Sum: ${sum} (${sumParity}). You WIN the toss & chose to BAT!`);
-    } else {
-      setTossResult(`Sum: ${sum} (${sumParity}). CPU WINS the toss & chose to BOWL!`);
-    }
-
-    // Move to batting phase after a short delay
     setTimeout(() => {
-      setPhase("batting");
-      setTossResult(null);
-      setSelectedNum(null);
-      setSelectedParity(null);
-      setWaiting(false);
-    }, 2500);
-  };
-
-  // ── 2. Player Bats ────────────────────────────────────────────────────────
-  const handleBowl = () => {
-    if (!selectedNum || waiting) return;
-    setWaiting(true);
-
-    const compNum = Math.ceil(Math.random() * 6);
-    // Standard Hand Cricket: If numbers match, you are OUT.
-    const playerHit = selectedNum !== compNum; 
-
-    const msg = `You: ${selectedNum} | CPU: ${compNum} → ${
-      playerHit ? `+${selectedNum} RUNS` : "OUT!"
-    }`;
-    addLog(msg);
-
-    if (playerHit) {
-      const newScore = playerScore + selectedNum;
-      setPlayerScore(newScore);
-      if (newScore >= 100) unlockAchievement("century");
-      setLastResult(`+${selectedNum} runs`);
-    } else {
-      const newWickets = playerWickets + 1;
-      setPlayerWickets(newWickets);
-      if (newWickets === 1 && playerScore === 0) unlockAchievement("duck");
-      setLastResult("OUT!");
-      
-      if (newWickets >= MAX_WICKETS) {
-        // Innings over — computer bats
-        setTimeout(() => {
-          setPhase("computer-batting");
-          runComputerInnings(playerScore);
-        }, 900);
-        setWaiting(false);
-        setSelectedNum(null);
-        return;
+      if (wonToss) {
+        setTossResult(`Sum was ${sum} (${sumParity}) — You won the toss! 🎉`);
+        setPhase("toss-choice");
+      } else {
+        const cpuChoice = Math.random() > 0.5 ? "BATTING" : "BOWLING";
+        setTossResult(`Sum was ${sum} (${sumParity}) — CPU won the toss and wants to ${cpuChoice === "BATTING" ? "Bat" : "Bowl"} first!`);
+        setPlayerRole(cpuChoice === "BATTING" ? "BOWLING" : "BATTING");
+        setTimeout(() => setPhase("playing"), 2000);
       }
-    }
-
-    setTimeout(() => {
-      setWaiting(false);
+      setResolvingMove(false);
       setSelectedNum(null);
-    }, 700);
+    }, 1000);
   };
 
-  // ── 3. Computer Bats (auto-play) ──────────────────────────────────────────
-  const runComputerInnings = (target: number) => {
-    let cScore = 0;
-    let cWickets = 0;
-    const balls: string[] = [];
+  const handleTossChoice = (choice: Role) => {
+    setPlayerRole(choice);
+    setPhase("playing");
+    setTossResult(null);
+    setSelectedNum(null);
+    setSelectedParity(null);
+  };
 
-    // Reset logs for CPU innings
-    setGameLog([]);
+  // ── 2. Play Turn Step ─────────────────────────────────────────────────────
+  const handleDelivery = () => {
+    if (!selectedNum || resolvingMove) return;
+    
+    setResolvingMove(true);
     setLastResult(null);
+    setRevealedPlayerNum(null);
+    setRevealedCpuNum(null);
+    
+    const pMove = selectedNum;
+    const cMove = Math.ceil(Math.random() * 6);
+    const isOut = pMove === cMove;
 
-    const playBall = (wicketCount: number, score: number) => {
-      // Check if innings should end before bowling the next ball
-      if (wicketCount >= MAX_WICKETS || score > target) {
-        setTimeout(() => endGame(target, score), 600);
+    // Phase A: Stop shuffle, reveal choices side-by-side
+    setTimeout(() => {
+      setRevealedPlayerNum(pMove);
+      setRevealedCpuNum(cMove);
+
+      // Phase B: Visual drama pause before showing result text
+      setTimeout(() => {
+        if (playerRole === "BATTING") {
+          if (isOut) {
+            setPlayerWickets(1);
+            setLastResult("OUT! 🛑");
+            addLog(`You threw ${pMove}, CPU matched with ${cMove} → You're Out!`);
+            if (playerScore === 0) unlockAchievement("duck");
+            checkInningsEnd(playerScore);
+          } else {
+            const newScore = playerScore + pMove;
+            setPlayerScore(newScore);
+            setLastResult(`+${pMove} Runs! 🏏`);
+            addLog(`You scored +${pMove} runs (CPU threw ${cMove})`);
+            checkMatchConclusion(newScore, computerScore);
+          }
+        } else {
+          // Player is BOWLING (CPU Bats)
+          if (isOut) {
+            setComputerWickets(1);
+            setLastResult("GOT 'EM! OUT! ☝️");
+            addLog(`CPU threw ${cMove}, you matched with ${pMove} → CPU is Out!`);
+            if (computerScore === 0) unlockAchievement("shutout");
+            checkInningsEnd(computerScore);
+          } else {
+            const newScore = computerScore + cMove;
+            setComputerScore(newScore);
+            setLastResult(`CPU gets +${cMove} 🏃`);
+            addLog(`CPU scores +${cMove} runs (You threw ${pMove})`);
+            checkMatchConclusion(playerScore, newScore);
+          }
+        }
+      }, 500);
+
+    }, 800);
+  };
+
+  const checkMatchConclusion = (pScore: number, cScore: number) => {
+    if (innings === 2 && target !== null) {
+      if ((playerRole === "BATTING" && pScore > target) || (playerRole === "BOWLING" && cScore > target)) {
+        setTimeout(() => setPhase("result"), 1000);
         return;
       }
-
-      const cpNum = Math.ceil(Math.random() * 6);
-      const playerBowl = Math.ceil(Math.random() * 6);
-      const compHit = cpNum !== playerBowl;
-
-      if (compHit) {
-        score += cpNum;
-        cScore = score;
-        balls.unshift(`CPU: ${cpNum} | You: ${playerBowl} | +${cpNum}`);
-      } else {
-        wicketCount += 1;
-        cWickets = wicketCount;
-        balls.unshift(`CPU: ${cpNum} | You: ${playerBowl} | OUT!`);
-      }
-
-      setComputerScore(score);
-      setComputerWickets(wicketCount);
-      setGameLog([...balls].slice(0, 6));
-
-      // Check win condition immediately after ball is played
-      if (wicketCount >= MAX_WICKETS || score > target) {
-        setTimeout(() => endGame(target, score), 800);
-      } else {
-        setTimeout(() => playBall(wicketCount, score), 1000);
-      }
-    };
-
-    setTimeout(() => playBall(0, 0), 1000);
+    }
+    setResolvingMove(false);
   };
 
-  const endGame = (playerFinal: number, compFinal: number) => {
-    setPhase("result");
-    if (compFinal === 0) unlockAchievement("shutout");
-    if (playerFinal - compFinal >= 50) unlockAchievement("perfect");
+  const checkInningsEnd = (currentInningsScore: number) => {
+    if (innings === 1) {
+      setTimeout(() => {
+        setTarget(currentInningsScore);
+        setPhase("innings-break");
+      }, 1200);
+    } else {
+      setTimeout(() => setPhase("result"), 1200);
+    }
   };
 
-  const NUMS = [1, 2, 3, 4, 5, 6];
+  const startInnings2 = () => {
+    setInnings(2);
+    setPlayerRole(playerRole === "BATTING" ? "BOWLING" : "BATTING");
+    setLastResult(null);
+    setRevealedPlayerNum(null);
+    setRevealedCpuNum(null);
+    setResolvingMove(false);
+    setPhase("playing");
+  };
 
   return (
     <section id="arcade" className="section-padding relative overflow-hidden">
       <SectionWatermark index="05" />
       <div className="max-w-3xl mx-auto">
         {/* Header */}
-        <motion.div
-          ref={ref}
-          initial={{ opacity: 0, y: 20 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          className="flex items-center gap-4 mb-8"
-        >
+        <motion.div ref={ref} initial={{ opacity: 0, y: 20 }} animate={inView ? { opacity: 1, y: 0 } : {}} className="flex items-center gap-4 mb-8">
           <div className="h-px w-10 bg-amber/50" />
-          <span className="font-mono text-xs text-amber/50 tracking-[0.25em] uppercase">
-            BREAK TIME
-          </span>
+          <span className="font-mono text-xs text-amber/50 tracking-[0.25em] uppercase">MINI GAME</span>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ delay: 0.1 }}
-          className="mb-10"
-        >
-          <h2 className="font-serif text-4xl md:text-5xl text-offwhite mb-3">
-            Hand Cricket.
-          </h2>
-          <p className="font-grotesk text-sm text-offwhite/40">
-            A game I grew up playing. Now it lives in my portfolio.
-          </p>
-        </motion.div>
+        <div className="mb-10">
+          <h2 className="font-serif text-4xl md:text-5xl text-offwhite mb-3">Hand Cricket.</h2>
+          <p className="font-grotesk text-sm text-offwhite/40">A game I grew up playing. Now it lives in my portfolio.</p>
+        </div>
 
-        {/* Game container */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={inView ? { opacity: 1 } : {}}
-          transition={{ delay: 0.2 }}
-          className="border border-white/8 bg-bg-2 relative scanlines overflow-hidden"
+        {/* Core Screen Area Cabinet */}
+        <motion.div 
+          animate={lastResult?.includes("OUT") ? { x: [-8, 8, -6, 6, 0], backgroundColor: ["#111", "#1e1010", "#111"] } : {}}
+          className="border border-white/8 bg-bg-2 relative scanlines overflow-hidden min-h-[460px] flex flex-col justify-between"
         >
-          {/* Top bar */}
-          <div className="border-b border-white/8 px-5 py-3 flex items-center justify-between">
-            <span className="font-mono text-xs text-amber">
-              HAND_CRICKET.exe
-            </span>
-            <div className="flex gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-white/10" />
-              <span className="w-2.5 h-2.5 rounded-full bg-white/10" />
-              <span className="w-2.5 h-2.5 rounded-full bg-amber/60" />
-            </div>
+          {/* Top Panel bar */}
+          <div className="border-b border-white/8 px-5 py-3 flex items-center justify-between font-mono text-xs text-offwhite/30">
+            <span className="text-amber">CRICKET_STATION</span>
+            <span>{innings === 1 ? "FIRST INNINGS" : `CHASING TARGET: ${target !== null ? target + 1 : 0}`}</span>
           </div>
 
-          <div className="p-6 min-h-[420px] flex flex-col">
+          <div className="p-6 flex-1 flex flex-col justify-between">
             <AnimatePresence mode="wait">
               
-              {/* ── INTRO ── */}
+              {/* PHASE: INTRO */}
               {phase === "intro" && (
-                <motion.div
-                  key="intro"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="flex flex-col gap-6"
-                >
-                  <div className="font-mono text-xs text-offwhite/40 space-y-1">
-                    <p>HOW TO PLAY:</p>
-                    <p className="pl-4 text-offwhite/30">
-                      1. Win the toss by guessing the sum's parity (Odd or Even).
-                    </p>
-                    <p className="pl-4 text-offwhite/30">
-                      2. When batting, pick a number (1-6).
-                    </p>
-                    <p className="pl-4 text-offwhite/30">
-                      3. If the CPU picks the SAME number, you are OUT.
-                    </p>
-                    <p className="pl-4 text-offwhite/30">
-                      4. If numbers differ, you score the number you threw.
-                    </p>
-                    <p className="pl-4 text-offwhite/30">
-                      5. {MAX_WICKETS} wickets per innings. Protect your wicket.
-                    </p>
-                  </div>
-                  <button
-                    data-hover
-                    onClick={() => setPhase("toss")}
-                    className="self-start font-mono text-sm text-amber border border-amber/30 px-6 py-3 hover:bg-amber/10 hover:border-amber/60 transition-all"
-                  >
-                    START MATCH →
+                <motion.div key="intro" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
+                  <p className="font-grotesk text-sm text-offwhite/60 leading-relaxed">
+                    Remember playing this under the desk back in school? Same rules apply here. Throw your number—if the CPU matches it, you're out. If not, the runs keep stacking up. Sudden death rules: 1 wicket is all you get.
+                  </p>
+                  <button onClick={() => setPhase("toss")} className="font-mono text-sm text-amber border border-amber/30 px-6 py-3 hover:bg-amber/10 transition-all">
+                    LET'S FLIP FOR TOSS →
                   </button>
                 </motion.div>
               )}
 
-              {/* ── TOSS ── */}
+              {/* PHASE: TOSS CONTROL */}
               {phase === "toss" && (
-                <motion.div
-                  key="toss"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="flex flex-col gap-6"
-                >
+                <motion.div key="toss" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
                   {!tossResult ? (
-                    <>
-                      {/* Parity choice */}
+                    <div className="space-y-4">
                       <div>
-                        <p className="font-mono text-xs text-offwhite/30 mb-2">
-                          1. CALL TOSS PARITY:
-                        </p>
-                        <div className="flex gap-3">
-                          {(["ODD", "EVEN"] as Parity[]).map((p) => (
-                            <button
-                              key={p}
-                              data-hover
-                              onClick={() => setSelectedParity(p)}
-                              className={`font-mono text-sm px-5 py-2 border transition-all ${
-                                selectedParity === p
-                                  ? "border-amber bg-amber/15 text-amber"
-                                  : "border-white/10 text-offwhite/40 hover:border-white/20"
-                              }`}
-                            >
-                              {p}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Number choice */}
-                      <div>
-                        <p className="font-mono text-xs text-offwhite/30 mb-2">
-                          2. THROW NUMBER FOR TOSS:
-                        </p>
+                        <p className="font-mono text-xs text-offwhite/30 mb-2">GUESS THE COIN SUM:</p>
                         <div className="flex gap-2">
-                          {NUMS.map((n) => (
-                            <button
-                              key={n}
-                              data-hover
-                              onClick={() => setSelectedNum(n)}
-                              className={`w-10 h-10 font-mono text-sm border transition-all ${
-                                selectedNum === n
-                                  ? "border-amber bg-amber/15 text-amber"
-                                  : "border-white/10 text-offwhite/40 hover:border-white/20"
-                              }`}
-                            >
-                              {n}
-                            </button>
+                          {(["ODD", "EVEN"] as Parity[]).map((p) => (
+                            <button key={p} onClick={() => setSelectedParity(p)} className={`font-mono text-xs px-4 py-2 border ${selectedParity === p ? "border-amber bg-amber/15 text-amber" : "border-white/10 text-offwhite/40"}`}>{p}</button>
                           ))}
                         </div>
                       </div>
-
-                      <button
-                        data-hover
-                        onClick={handleToss}
-                        disabled={!selectedParity || !selectedNum || waiting}
-                        className="self-start font-mono text-sm text-amber border border-amber/30 px-5 py-2.5 hover:bg-amber/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                      >
-                        {waiting ? "FLIPPING..." : "TOSS COIN →"}
-                      </button>
-                    </>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center flex-1 min-h-[200px]">
-                      <p className="font-mono text-sm text-amber animate-pulse text-center">
-                        {tossResult}
-                      </p>
+                      <div>
+                        <p className="font-mono text-xs text-offwhite/30 mb-2">THROW A NUMBER FOR THE FLIP:</p>
+                        <div className="flex gap-2">
+                          {NUMS.map((n: number) => (
+                            <button key={n} onClick={() => setSelectedNum(n)} className={`w-8 h-8 font-mono text-xs border ${selectedNum === n ? "border-amber bg-amber/15 text-amber" : "border-white/10 text-offwhite/40"}`}>{n}</button>
+                          ))}
+                        </div>
+                      </div>
+                      <button onClick={handleToss} disabled={!selectedParity || !selectedNum || resolvingMove} className="font-mono text-xs text-amber border border-amber/30 px-4 py-2 disabled:opacity-30">FLIP COIN 🪙</button>
                     </div>
+                  ) : (
+                    <p className="font-mono text-sm text-amber text-center py-12 animate-pulse">{tossResult}</p>
                   )}
                 </motion.div>
               )}
 
-              {/* ── BATTING ── */}
-              {phase === "batting" && (
-                <motion.div
-                  key="batting"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="flex flex-col gap-5 flex-1"
-                >
-                  {/* Scoreboard */}
+              {/* PHASE: TOSS WIN DECISION INTERFACE */}
+              {phase === "toss-choice" && (
+                <motion.div key="toss-choice" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 text-center py-6">
+                  <p className="font-mono text-sm text-amber">{tossResult}</p>
+                  <p className="font-grotesk text-sm text-offwhite/60">What do you want to do first?</p>
+                  <div className="flex justify-center gap-4">
+                    <button onClick={() => handleTossChoice("BATTING")} className="font-mono text-xs border border-amber/40 text-amber px-5 py-2.5 hover:bg-amber/5">I WANT TO BAT 🏏</button>
+                    <button onClick={() => handleTossChoice("BOWLING")} className="font-mono text-xs border border-white/10 text-offwhite/60 px-5 py-2.5 hover:bg-white/5">I WANT TO BOWL ⚾</button>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* PHASE: CORE INNINGS PLAY FIELD */}
+              {phase === "playing" && (
+                <motion.div key="playing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 flex-1 flex flex-col justify-between">
+                  {/* Scoreboards */}
                   <div className="grid grid-cols-2 gap-4">
-                    <ScoreCard
-                      label="YOU"
-                      score={playerScore}
-                      wickets={playerWickets}
-                      active
-                    />
-                    <ScoreCard
-                      label="CPU"
-                      score={computerScore}
-                      wickets={computerWickets}
-                      active={false}
-                    />
+                    <ScoreCard label={`YOU (${playerRole})`} score={playerScore} wickets={playerWickets} active={playerRole === "BATTING"} />
+                    <ScoreCard label={`CPU (${playerRole === "BATTING" ? "BOWLING" : "BATTING"})`} score={computerScore} wickets={computerWickets} active={playerRole === "BOWLING"} />
                   </div>
 
-                  {/* Wickets */}
-                  <div className="flex gap-1.5 items-center">
-                    <span className="font-mono text-xs text-offwhite/30 mr-1">
-                      WICKETS:
-                    </span>
-                    {Array.from({ length: MAX_WICKETS }).map((_, i) => (
-                      <span
-                        key={i}
-                        className={`w-2 h-5 ${
-                          i < playerWickets ? "bg-offwhite/20" : "bg-amber/70"
-                        }`}
-                      />
-                    ))}
-                  </div>
+                  {/* REVEAL SHOWDOWN HUB ZONE */}
+                  <div className="border border-white/5 bg-bg/40 p-4 grid grid-cols-2 gap-4 items-center justify-items-center h-28 relative overflow-hidden rounded-sm">
+                    <div className="text-center">
+                      <p className="font-mono text-[10px] text-offwhite/30 mb-1">YOUR HAND</p>
+                      <AnimatePresence mode="wait">
+                        <motion.div 
+                          key={revealedPlayerNum ?? "empty-p"}
+                          initial={{ scale: 0.7, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          className="w-12 h-12 border border-white/10 flex items-center justify-center font-mono text-lg font-bold text-offwhite bg-bg"
+                        >
+                          {resolvingMove && revealedPlayerNum === null ? "⏳" : revealedPlayerNum ?? "-"}
+                        </motion.div>
+                      </AnimatePresence>
+                    </div>
 
-                  {/* Last result */}
-                  <div className="h-6">
+                    <div className="text-center">
+                      <p className="font-mono text-[10px] text-offwhite/30 mb-1">CPU HAND</p>
+                      <div className={`w-12 h-12 border flex items-center justify-center font-mono text-lg font-bold bg-bg ${resolvingMove && revealedCpuNum === null ? "border-amber/40 text-amber" : "border-white/10 text-offwhite"}`}>
+                        {resolvingMove && revealedCpuNum === null ? shuffleNum : revealedCpuNum ?? "-"}
+                      </div>
+                    </div>
+
                     <AnimatePresence>
                       {lastResult && (
-                        <motion.p
-                          key={lastResult + Math.random()}
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0 }}
-                          className={`font-mono text-base font-bold ${
-                            lastResult.includes("OUT") ? "text-offwhite/50" : "text-amber"
-                          }`}
-                        >
-                          {lastResult}
-                        </motion.p>
+                        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-bg/80 backdrop-blur-xs flex items-center justify-center">
+                          <p className={`font-mono text-sm font-bold tracking-widest ${lastResult.includes("OUT") ? "text-red-500 scale-105" : "text-amber"}`}>{lastResult}</p>
+                        </motion.div>
                       )}
                     </AnimatePresence>
                   </div>
 
-                  {/* Number choice (NO PARITY NEEDED HERE) */}
-                  <div>
-                    <p className="font-mono text-xs text-offwhite/30 mb-2">
-                      THROW NUMBER:
-                    </p>
-                    <div className="flex gap-2">
-                      {NUMS.map((n) => (
-                        <button
-                          key={n}
-                          data-hover
-                          onClick={() => setSelectedNum(n)}
-                          className={`w-10 h-10 font-mono text-sm border transition-all ${
-                            selectedNum === n
-                              ? "border-amber bg-amber/15 text-amber"
-                              : "border-white/10 text-offwhite/40 hover:border-white/20"
-                          }`}
-                        >
-                          {n}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Bowl button */}
-                  <button
-                    data-hover
-                    onClick={handleBowl}
-                    disabled={!selectedNum || waiting}
-                    className="self-start font-mono text-sm text-amber border border-amber/30 px-5 py-2.5 hover:bg-amber/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                  >
-                    {waiting ? "..." : "BAT →"}
-                  </button>
-
-                  {/* Log */}
-                  {gameLog.length > 0 && (
-                    <div className="border-t border-white/6 pt-3 space-y-1">
-                      {gameLog.map((log, i) => (
-                        <p
-                          key={i}
-                          className={`font-mono text-xs ${
-                            i === 0 ? "text-offwhite/60" : "text-offwhite/25"
-                          }`}
-                        >
-                          {log}
-                        </p>
-                      ))}
-                    </div>
-                  )}
-                </motion.div>
-              )}
-
-              {/* ── COMPUTER BATTING ── */}
-              {phase === "computer-batting" && (
-                <motion.div
-                  key="comp-batting"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="flex flex-col gap-5 flex-1"
-                >
-                  <div className="grid grid-cols-2 gap-4">
-                    <ScoreCard label="YOU" score={playerScore} wickets={playerWickets} active={false} />
-                    <ScoreCard label="CPU" score={computerScore} wickets={computerWickets} active />
-                  </div>
-
-                  <p className="font-mono text-xs text-amber animate-pulse">
-                    CPU IS CHASING {playerScore + 1} TO WIN...
-                  </p>
-
-                  <div className="space-y-1">
-                    {gameLog.map((log, i) => (
-                      <p key={i} className={`font-mono text-xs ${i === 0 ? "text-offwhite/60" : "text-offwhite/25"}`}>
-                        {log}
-                      </p>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-
-              {/* ── RESULT ── */}
-              {phase === "result" && (
-                <motion.div
-                  key="result"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="flex flex-col items-center justify-center flex-1 gap-6 text-center"
-                >
-                  <div>
-                    <p className="font-mono text-xs text-offwhite/30 mb-3 tracking-widest">
-                      MATCH RESULT
-                    </p>
-                    <p className="font-serif text-5xl text-offwhite mb-2">
-                      {playerScore > computerScore ? (
-                        <span className="text-amber">YOU WIN</span>
-                      ) : playerScore < computerScore ? (
-                        "CPU WINS"
-                      ) : (
-                        "DRAW"
-                      )}
-                    </p>
-                    <p className="font-mono text-sm text-offwhite/50">
-                      You: {playerScore} — CPU: {computerScore}
-                    </p>
-                    {playerScore > computerScore && (
-                      <p className="font-mono text-xs text-amber/60 mt-2">
-                        by {playerScore - computerScore} runs
-                      </p>
+                  {/* Input Triggers */}
+                  <div className="space-y-3">
+                    {!resolvingMove && (
+                      <div>
+                        <p className="font-mono text-[10px] text-offwhite/30 mb-1.5">PICK A NUMBER TO THROW:</p>
+                        <div className="flex gap-1.5">
+                          {NUMS.map((n: number) => (
+                            <button key={n} onClick={() => setSelectedNum(n)} className={`w-9 h-9 font-mono text-xs border ${selectedNum === n ? "border-amber bg-amber/15 text-amber" : "border-white/10 text-offwhite/40 hover:border-white/20"}`}>{n}</button>
+                          ))}
+                        </div>
+                      </div>
                     )}
+
+                    <button onClick={handleDelivery} disabled={!selectedNum || resolvingMove} className="font-mono text-xs text-amber border border-amber/30 px-4 py-2 disabled:opacity-20">
+                      {resolvingMove ? "Revealing hands..." : playerRole === "BATTING" ? "HIT IT! 🚀" : "THROW DELIVERY! ⚡"}
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* PHASE: INNINGS CHANGE OVERLAY BREAK */}
+              {phase === "innings-break" && (
+                <motion.div key="innings-break" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-10 space-y-4 font-mono">
+                  <p className="text-sm text-amber tracking-wider">👋 INNINGS OVER! SWITCHING SIDES</p>
+                  <p className="text-xs text-offwhite/50">First innings wrapped up at {target} runs.</p>
+                  <p className="text-xs text-amber/70 font-semibold">{playerRole === "BATTING" ? "Time to bowling! Defend this target." : `You need ${target !== null ? target + 1 : 0} runs to win this.`}</p>
+                  <button onClick={startInnings2} className="text-xs border border-white/10 px-4 py-2 hover:bg-white/5 transition-all">BRING ON THE SECOND INNINGS →</button>
+                </motion.div>
+              )}
+
+              {/* PHASE: CONCLUDED SUMMARY LOG */}
+              {phase === "result" && (
+                <motion.div key="result" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center justify-center text-center space-y-6 py-4">
+                  <div>
+                    <p className="font-mono text-[10px] text-offwhite/20 mb-2 tracking-widest">MATCH FINISHED</p>
+                    <p className="font-serif text-5xl text-offwhite">
+                      {playerScore > computerScore ? <span className="text-amber">YOU WIN! 🏆</span> : playerScore < computerScore ? "CPU WINS xd" : "IT'S A TIE! 🤝"}
+                    </p>
+                    <p className="font-mono text-xs text-offwhite/40 mt-2">Final Score: You ({playerScore}) — CPU ({computerScore})</p>
                   </div>
 
                   {achievements.length > 0 && (
-                    <div className="border border-amber/20 px-6 py-3 space-y-1">
-                      <p className="font-mono text-xs text-amber/50 mb-2">
-                        ACHIEVEMENTS
-                      </p>
-                      {achievements.map((id) => {
-                        const a = ACHIEVEMENTS.find((x) => x.id === id);
-                        return a ? (
-                          <p key={id} className="font-mono text-xs text-offwhite/50">
-                            🏆 {a.label} — {a.desc}
-                          </p>
-                        ) : null;
-                      })}
+                    <div className="border border-amber/15 bg-amber/5 px-4 py-2 space-y-0.5 font-mono text-[10px]">
+                      <p className="text-amber/40 mb-1">ACHIEVEMENTS UNLOCKED</p>
+                      {achievements.map((id) => (
+                        <p key={id} className="text-offwhite/50">🏆 {ACHIEVEMENTS.find(x => x.id === id)?.label}</p>
+                      ))}
                     </div>
                   )}
 
-                  <button
-                    data-hover
-                    onClick={resetGame}
-                    className="font-mono text-sm text-amber border border-amber/30 px-5 py-2.5 hover:bg-amber/10 transition-all"
-                  >
-                    PLAY AGAIN →
-                  </button>
+                  <button onClick={resetGame} className="font-mono text-xs text-amber border border-amber/30 px-5 py-2.5 hover:bg-amber/10">PLAY ANOTHER ROUND</button>
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
         </motion.div>
-
-        {/* Achievement toast */}
-        <AnimatePresence>
-          {newAchievement && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              className="absolute bottom-6 right-6 z-50 bg-bg-2 border border-amber/30 px-4 py-3 shadow-lg"
-            >
-              <p className="font-mono text-xs text-amber mb-0.5">
-                🏆 ACHIEVEMENT UNLOCKED
-              </p>
-              <p className="font-mono text-xs text-offwhite/60">
-                {newAchievement.label} — {newAchievement.desc}
-              </p>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
     </section>
   );
@@ -593,22 +413,10 @@ function ScoreCard({
   active: boolean;
 }) {
   return (
-    <div
-      className={`border px-4 py-3 transition-colors ${
-        active ? "border-amber/30 bg-amber/5" : "border-white/8"
-      }`}
-    >
-      <p
-        className={`font-mono text-xs mb-1 ${
-          active ? "text-amber/60" : "text-offwhite/30"
-        }`}
-      >
-        {label}
-      </p>
-      <p className="font-mono text-3xl text-offwhite">{score}</p>
-      <p className="font-mono text-xs text-offwhite/30 mt-0.5">
-        {wickets}/{MAX_WICKETS} wkts
-      </p>
+    <div className={`border px-4 py-3 transition-colors ${active ? "border-amber/30 bg-amber/5" : "border-white/8"}`}>
+      <p className={`font-mono text-xs mb-1 ${active ? "text-amber/60" : "text-offwhite/30"}`}>{label}</p>
+      <p className="font-mono text-3xl text-offwhite font-bold">{score}</p>
+      <p className="font-mono text-xs text-offwhite/30 mt-0.5">{wickets}/1 Wkts</p>
     </div>
   );
 }
