@@ -76,7 +76,7 @@ export default function Navbar() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 10 }}
                 transition={{ duration: 0.3, ease: "easeOut" }}
-                href="https://drive.google.com/file/d/1jXyzhB7jg9Gfs4ssaKg9rP-qIdTXcKpC/view"
+                href="https://drive.google.com/file/d/1WXi-lH0WQV9fXHUA93FDNRzceKVKbAKL/view"
                 target="_blank"
                 rel="noopener noreferrer"
                 data-hover
@@ -140,7 +140,7 @@ export default function Navbar() {
                   initial={{ opacity: 0, y: -5 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -5 }}
-                  href="https://drive.google.com/file/d/1jXyzhB7jg9Gfs4ssaKg9rP-qIdTXcKpC/view"
+                  href="https://drive.google.com/file/d/1WXi-lH0WQV9fXHUA93FDNRzceKVKbAKL/view"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-mono text-sm text-amber border border-amber/30 px-4 py-2 text-center hover:bg-amber/10 transition-all"

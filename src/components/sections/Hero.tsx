@@ -86,7 +86,7 @@ export default function Hero() {
             VIEW PROJECTS →
           </a>
           <a
-  href="https://drive.google.com/file/d/1jXyzhB7jg9Gfs4ssaKg9rP-qIdTXcKpC/view"
+  href="https://drive.google.com/file/d/1WXi-lH0WQV9fXHUA93FDNRzceKVKbAKL/view"
   target="_blank"
   rel="noopener noreferrer"
   data-hover
